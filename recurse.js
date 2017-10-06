@@ -1,13 +1,22 @@
+/*****************************
+ * NPM Packages
+ ****************************/
 // File-system operations, i.e. reading directories, checking type of files
 const fs = require('fs');
 
-// Path functions like joining and getting info from the path
+// Path functions like joining and getting parts of the path
 const path = require('path');
 
 // Allow us to log pretty colors.
 const chalk = require('chalk');
 
-// Maximum number of subirectories we should limit to
+/*****************************
+ * Program variables
+ ****************************/
+// Top level starting point, fill this in!
+const START_DIRECTORY = '';
+
+// Maximum number of entries we should limit to
 const MAX_COUNT = 1000;
 
 // Array of all files once the script is done running
@@ -17,18 +26,31 @@ const allFiles = [];
 const emptyDirectories = [];
 
 
+/*****************************
+ * Telemetry, just for fun.
+ ****************************/
 // Number of subdirectories
 let numSubDirectories = 0;
 
 // The current count of entries, not to exceed MAX_COUNT
 let currentCount = 0;
 
+/*****************************
+ * Function definition
+ ****************************/
 /**
  * @param {any} startPoint Starting directory.
- * @returns {Array<string>}
+ * @returns {Array<string>} Array of all the files in the directory and subdirectories.
  */
 function walk(startPoint) {
+  if (!startPoint.length) {
+    console.log(chalk.red('You must set the START_DIRECTORY variable first.'));
+    return;
+  }
+
+  // Read the files in the startPoint directory.
   const startFiles = fs.readdirSync(startPoint);
+
   if (!startFiles.length) {
     console.log(chalk.grey(`  -- No files in ${startPoint} --`));
     emptyDirectories.push(startPoint);
@@ -38,8 +60,8 @@ function walk(startPoint) {
   // Get the full path of each individual file.
   startFiles
     .map(file => {
-      // example arguments: /Users/sgeer/Documents, someFile.png
-      // returns /Users/sgeer/Documents/someFile.png
+      // example arguments: /Users/user/Documents, someFile.png
+      // returns /Users/user/Documents/someFile.png
       return path.join(startPoint, file);
     })
     // Loop through them...
@@ -65,7 +87,7 @@ function walk(startPoint) {
         numSubDirectories++;
         currentCount++;
 
-        // Call ourself with the current directory path.
+        // Call ourself with the child directory path.
         walk(fullPath);
       } else {
         // Otherwise, just log out the filename we found.
@@ -80,21 +102,21 @@ function walk(startPoint) {
   return allFiles;
 }
 
-// Top level starting point
-const directory = '/Users/sgeer/Documents';
-
+/*****************************
+ * Execution
+ ****************************/
 /*
  * walk() might throw an exception if we exceed more than MAX_COUNT directories,
  * so we have to wrap the execution in a try/catch block to prevent the error
  * from going unhandled and showing the stack-trace in the console.
  */
 try {
-  let result = walk(directory);
+  let result = walk(START_DIRECTORY);
 
   // Output some stats
   console.log(
     chalk.cyan(
-      `There are ${result.length} files and ${numSubDirectories} subdirectories in ${directory}.`
+      `There are ${result.length} files and ${numSubDirectories} subdirectories in ${START_DIRECTORY}.`
     )
   );
 
@@ -116,6 +138,12 @@ try {
     )
   );
 } catch (e) {
-  // If the RangeError is thrown, this block will be executed.
-  console.log(chalk.red(`Max depth of ${MAX_COUNT} exceeded. Find a smaller start point.`));
+  if(e instanceof RangeError) {
+    // If the RangeError is thrown, this block will be executed.
+    console.log(chalk.red(`Max depth of ${MAX_COUNT} exceeded. Find a smaller start point.`));
+  } else {
+    // Unexpected error occurred.
+    // Re-throw it so we can see what it is.
+    throw e;
+  }
 }
